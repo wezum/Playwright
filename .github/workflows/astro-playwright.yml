@@ -1,0 +1,74 @@
+name: Astro Dashboard & Playwright Test Runner
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      specs:
+        description: 'Selected Playwright spec files'
+        required: true
+        default: 'tests/login.spec.ts'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  test-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          cd dashboard && npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Build Astro Dashboard
+        run: |
+          cd dashboard
+          npm run build
+
+      - name: Run Playwright Tests
+        run: |
+          if [ "${{ github.event.inputs.specs }}" != "" ]; then
+            npx playwright test ${{ github.event.inputs.specs }}
+          else
+            npx playwright test
+          fi
+        continue-on-error: true
+
+      - name: Bundle Dashboard & Test Report
+        run: |
+          mkdir -p dashboard/dist/report
+          if [ -d "playwright-report" ]; then
+            cp -R playwright-report/* dashboard/dist/report/
+          fi
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dashboard/dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
