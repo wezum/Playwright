@@ -81,7 +81,7 @@ const AVAILABLE_SPECS = [
       <div class="card">
         <h2>1. Authentication</h2>
         <label for="pat">GitHub Personal Access Token (PAT):</label>
-        <input type="password" id="pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+        <input type="password" id="pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx or github_pat_xxxx" />
       </div>
 
       <!-- Spec Selection -->
@@ -114,24 +114,34 @@ const AVAILABLE_SPECS = [
     </div>
 
     <script>
-      // Browser-side script to trigger workflow
-      const OWNER = 'YOUR_GITHUB_USERNAME'; // Replace with your username
-      const REPO = 'YOUR_REPO_NAME';       // Replace with your repo name
-      const WORKFLOW_ID = 'astro-playwright.yml';
+      // ⚠️ UPDATE THESE TWO VALUES IF USING A DIFFERENT REPO:
+      const OWNER = 'YOUR_GITHUB_USERNAME'; // E.g., 'octocat'
+      const REPO = 'YOUR_REPO_NAME';       // E.g., 'astro-playwright-demo'
+      
+      // Match the exact filename in .github/workflows/
+      const WORKFLOW_ID = 'astro-playwright.yml'; 
 
       const runBtn = document.getElementById('runBtn');
       const statusDiv = document.getElementById('status');
       const logsCard = document.getElementById('logsCard');
       const actionLink = document.getElementById('actionLink') as HTMLAnchorElement;
+      const patInput = document.getElementById('pat') as HTMLInputElement;
+
+      // Auto-load saved PAT from localStorage
+      if (localStorage.getItem('gh_pat')) {
+        patInput.value = localStorage.getItem('gh_pat') || '';
+      }
 
       runBtn?.addEventListener('click', async () => {
-        const patInput = document.getElementById('pat') as HTMLInputElement;
         const token = patInput?.value.trim();
 
         if (!token) {
           alert('Please provide a GitHub Personal Access Token.');
           return;
         }
+
+        // Save token to localStorage for convenience
+        localStorage.setItem('gh_pat', token);
 
         const selectedSpecs = Array.from(document.querySelectorAll('.spec-check:checked'))
           .map(cb => (cb as HTMLInputElement).value);
@@ -149,6 +159,7 @@ const AVAILABLE_SPECS = [
             headers: {
               'Authorization': `Bearer ${token}`,
               'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -159,13 +170,13 @@ const AVAILABLE_SPECS = [
             })
           });
 
-          if (res.ok) {
+          if (res.ok || res.status === 204) {
             statusDiv!.innerText = '✅ Test run successfully requested!';
             logsCard!.style.display = 'block';
             actionLink!.href = `https://github.com/${OWNER}/${REPO}/actions`;
           } else {
-            const err = await res.json();
-            statusDiv!.innerText = `❌ Error: ${err.message || res.statusText}`;
+            const err = await res.json().catch(() => ({ message: res.statusText }));
+            statusDiv!.innerText = `❌ Error (${res.status}): ${err.message || res.statusText}`;
           }
         } catch (err: any) {
           statusDiv!.innerText = `❌ Request failed: ${err.message}`;
