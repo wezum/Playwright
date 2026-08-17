@@ -30,6 +30,12 @@ jobs:
       run: npx playwright install --with-deps chromium
     - name: Run Playwright tests
       run: npx playwright test --project=chromium
+    - name: Publish test report to job summary
+      uses: ctrf-io/github-test-reporter@v1
+      if: ${{ !cancelled() }}
+      with:
+        report-path: ctrf/ctrf-report.json
+        summary-report: true
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
