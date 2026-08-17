@@ -12,15 +12,19 @@ const ALL_USERS = [
   'visual_user',
 ] as const;
 
-test('Test all 6 login user states sequentially', async ({ page }) => {
-  const loginFlows = new LoginWorkflows(page);
-  const inventoryFlows = new InventoryWorkflows(page);
+test.describe('Login User State Scenarios', () => {
+  ALL_USERS.forEach((user) => {
+    test(`Verify user state for: ${user}`, async ({ page }) => {
+      const loginFlows = new LoginWorkflows(page);
+      const inventoryFlows = new InventoryWorkflows(page);
 
-  for (const user of ALL_USERS) {
-    const isOnInventory = await loginFlows.loginAs(user);
-    
-    if (isOnInventory) {
-      await inventoryFlows.logout(); // <-- Uses InventoryWorkflows
-    }
-  }
+      // 1. Attempt login & verify page state (inventory vs error banner)
+      const isOnInventory = await loginFlows.loginAs(user);
+
+      // 2. Log out if successfully navigated to inventory
+      if (isOnInventory) {
+        await inventoryFlows.logout();
+      }
+    });
+  });
 });
