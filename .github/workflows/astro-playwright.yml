@@ -1,4 +1,4 @@
-name: Astro Dashboard & Playwright Test Runner
+name: Astro Dashboard e2e Runner
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install Dependencies
         run: |
