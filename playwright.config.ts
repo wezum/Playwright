@@ -33,6 +33,9 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Saucedemo marks elements with data-test, not the data-testid default. */
+    testIdAttribute: 'data-test',
   },
 
   /* Configure projects for major browsers */
