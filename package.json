@@ -20,5 +20,8 @@
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "playwright-ctrf-json-reporter": "^0.0.29"
+  },
+  "dependencies": {
+    "@astrojs/vercel": "^11.0.5"
   }
 }

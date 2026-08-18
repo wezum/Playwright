@@ -1,6 +1,5 @@
 ---
 // src/pages/index.astro
-// Array of available specs in your project
 const AVAILABLE_SPECS = [
   { label: 'Login Workflows', path: 'tests/login.spec.ts' },
   { label: 'Inventory Workflows', path: 'tests/inventory.spec.ts' },
@@ -41,15 +40,6 @@ const AVAILABLE_SPECS = [
       .grid { display: grid; gap: 12px; margin: 15px 0; }
       label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 15px; }
       input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
-      input[type="password"] {
-        width: 100%;
-        padding: 10px;
-        background: #0d1117;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        color: white;
-        box-sizing: border-box;
-      }
       button {
         background: var(--accent);
         color: white;
@@ -77,16 +67,9 @@ const AVAILABLE_SPECS = [
     <div class="container">
       <h1>🚀 Playwright Test Control Center</h1>
 
-      <!-- Authentication -->
-      <div class="card">
-        <h2>1. Authentication</h2>
-        <label for="pat">GitHub Personal Access Token (PAT):</label>
-        <input type="password" id="pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx or github_pat_xxxx" />
-      </div>
-
       <!-- Spec Selection -->
       <div class="card">
-        <h2>2. Select Specs to Execute</h2>
+        <h2>1. Select Specs to Execute</h2>
         <div class="grid">
           {AVAILABLE_SPECS.map(spec => (
             <label>
@@ -101,48 +84,24 @@ const AVAILABLE_SPECS = [
 
       <!-- Live Logs Card -->
       <div class="card" id="logsCard" style="display: none;">
-        <h2>3. Pipeline Status</h2>
+        <h2>2. Pipeline Status</h2>
         <p>Execution triggered in GitHub Actions!</p>
-        <a id="actionLink" href="#" target="_blank">View Live Run Logs ↗</a>
+        <a id="actionLink" href="https://github.com/wezum/Playwright/actions" target="_blank">View Live Run Logs ↗</a>
       </div>
 
       <!-- Embedded Playwright Report -->
       <div class="card">
-        <h2>4. Latest Test Report</h2>
+        <h2>3. Latest Test Report</h2>
         <iframe src="report/index.html"></iframe>
       </div>
     </div>
 
     <script>
-      // ⚠️ UPDATE THESE TWO VALUES IF USING A DIFFERENT REPO:
-      const OWNER = 'wezum'; // E.g., 'octocat'
-      const REPO = 'Playwright';       // E.g., 'astro-playwright-demo'
-      
-      // Match the exact filename in .github/workflows/
-      const WORKFLOW_ID = 'astro-playwright.yml'; 
-
       const runBtn = document.getElementById('runBtn');
       const statusDiv = document.getElementById('status');
       const logsCard = document.getElementById('logsCard');
-      const actionLink = document.getElementById('actionLink') as HTMLAnchorElement;
-      const patInput = document.getElementById('pat') as HTMLInputElement;
-
-      // Auto-load saved PAT from localStorage
-      if (localStorage.getItem('gh_pat')) {
-        patInput.value = localStorage.getItem('gh_pat') || '';
-      }
 
       runBtn?.addEventListener('click', async () => {
-        const token = patInput?.value.trim();
-
-        if (!token) {
-          alert('Please provide a GitHub Personal Access Token.');
-          return;
-        }
-
-        // Save token to localStorage for convenience
-        localStorage.setItem('gh_pat', token);
-
         const selectedSpecs = Array.from(document.querySelectorAll('.spec-check:checked'))
           .map(cb => (cb as HTMLInputElement).value);
 
@@ -151,29 +110,18 @@ const AVAILABLE_SPECS = [
           return;
         }
 
-        statusDiv!.innerText = 'Triggering workflow via GitHub API...';
+        statusDiv!.innerText = 'Triggering workflow...';
 
         try {
-          const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`, {
+          const res = await fetch('/api/trigger', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              ref: 'main',
-              inputs: {
-                specs: selectedSpecs.join(' ')
-              }
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ specs: selectedSpecs })
           });
 
-          if (res.ok || res.status === 204) {
+          if (res.ok) {
             statusDiv!.innerText = '✅ Test run successfully requested!';
             logsCard!.style.display = 'block';
-            actionLink!.href = `https://github.com/${OWNER}/${REPO}/actions`;
           } else {
             const err = await res.json().catch(() => ({ message: res.statusText }));
             statusDiv!.innerText = `❌ Error (${res.status}): ${err.message || res.statusText}`;
